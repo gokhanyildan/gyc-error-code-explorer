@@ -1,4 +1,4 @@
-import { ErrorCode } from '../types';
+import { ErrorCode } from '../src/types';
 
 // AUTO-GENERATED + CUSTOM INJECTED
 export const errorDatabase: ErrorCode[] = [

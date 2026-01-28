@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ErrorCode } from "@/src/types";
 import { errorDatabase } from "@/data/error-db";
+import type { ReactNode } from "react";
 
 type SelectedPlatform = "all" | "windows" | "linux";
 
@@ -10,6 +11,25 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedPlatform, setSelectedPlatform] =
     useState<SelectedPlatform>("all");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const escapeRegExp = (s: string) =>
+    s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const highlight = (text: string, term: string): ReactNode => {
+    const t = term.trim();
+    if (!t) return text;
+    const re = new RegExp(`(${escapeRegExp(t)})`, "gi");
+    const parts = text.split(re);
+    return parts.map((part, i) =>
+      i % 2 === 1 ? (
+        <span key={i} className="text-amber-400">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
 
   const matched: ErrorCode[] = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -98,13 +118,43 @@ export default function Home() {
                   className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm"
                 >
                   <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-lg font-semibold text-slate-100">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-2xl bg-slate-800 rounded-md px-2 py-1 text-slate-100">
                         {err.code}
-                      </div>
-                      <div className="text-sm text-slate-400">{err.name}</div>
+                      </span>
+                      <button
+                        aria-label="Copy error code"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(err.code);
+                            setCopiedCode(err.code);
+                            setTimeout(() => setCopiedCode(null), 2000);
+                          } catch {}
+                        }}
+                        className="p-2 text-slate-500 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-all"
+                      >
+                        {copiedCode === err.code ? (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+                          </svg>
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path d="M16 1H4c-1.1 0-2 .9-2 2v12h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex gap-2 shrink-0">
                       <span className="inline-flex items-center rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-200 ring-1 ring-slate-700">
                         {err.source}
                       </span>
@@ -120,9 +170,12 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
+                  <div className="mt-3 text-sm text-slate-400">
+                    {highlight(err.name, searchTerm)}
+                  </div>
  
                   <div className="mt-4 text-sm text-slate-300">
-                    {err.description}
+                    {highlight(err.description, searchTerm)}
                   </div>
  
                   <div className="mt-3 text-xs text-slate-500">
@@ -130,8 +183,8 @@ export default function Home() {
                   </div>
  
                   {err.solutionHint && (
-                    <div className="mt-4 rounded-lg border border-slate-700 bg-slate-800/60 p-3">
-                      <div className="mb-1 text-xs font-semibold text-slate-300">
+                    <div className="mt-4 border-l-4 border-emerald-500 bg-slate-800/50 p-3">
+                      <div className="mb-1 text-xs font-semibold text-emerald-300">
                         Solution
                       </div>
                       <div className="text-sm text-slate-200">
