@@ -12,6 +12,7 @@ export default function Home() {
   const [selectedPlatform, setSelectedPlatform] =
     useState<SelectedPlatform>("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedFixFor, setCopiedFixFor] = useState<string | null>(null);
 
   const escapeRegExp = (s: string) =>
     s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -178,19 +179,98 @@ export default function Home() {
                     {highlight(err.description, searchTerm)}
                   </div>
  
+                  {Array.isArray(err.likelySeenIn) && err.likelySeenIn.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mt-4">
+                      <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Seen in:
+                      </span>
+                      {err.likelySeenIn.map((t) => (
+                        <span
+                          key={t}
+                          className="px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="mt-3 text-xs text-slate-500">
                     Integer: {err.codeInt}
                   </div>
  
-                  {err.solutionHint && (
-                    <div className="mt-4 border-l-4 border-emerald-500 bg-slate-800/50 p-3">
-                      <div className="mb-1 text-xs font-semibold text-emerald-300">
-                        Solution
+                  {err.runbook ? (
+                    <>
+                      {Array.isArray(err.runbook.causes) &&
+                        err.runbook.causes.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-xs font-bold uppercase text-slate-500">
+                              Possible Causes
+                            </div>
+                            <ul className="list-disc pl-5 mt-2 text-sm text-slate-300">
+                              {err.runbook.causes.map((c, i) => (
+                                <li key={i}>{c}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      {err.runbook.fixCommand && (
+                        <div className="mt-4 relative">
+                          <button
+                            aria-label="Copy fix command"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(
+                                  err.runbook!.fixCommand as string
+                                );
+                                setCopiedFixFor(err.code);
+                                setTimeout(() => setCopiedFixFor(null), 2000);
+                              } catch {}
+                            }}
+                            className="absolute right-2 top-2 p-2 text-slate-400 hover:text-green-400 hover:bg-slate-800 rounded transition"
+                          >
+                            {copiedFixFor === err.code ? (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-4 h-4"
+                              >
+                                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+                              </svg>
+                            ) : (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-4 h-4"
+                              >
+                                <path d="M16 1H4c-1.1 0-2 .9-2 2v12h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                              </svg>
+                            )}
+                          </button>
+                          <pre className="bg-black/50 p-3 rounded font-mono text-sm text-green-400 whitespace-pre-wrap">
+                            {err.runbook.fixCommand}
+                          </pre>
+                        </div>
+                      )}
+                      {err.runbook.deepDive && (
+                        <div className="mt-3 text-xs text-slate-400">
+                          {err.runbook.deepDive}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    err.solutionHint && (
+                      <div className="mt-4 border-l-4 border-emerald-500 bg-slate-800/50 p-3">
+                        <div className="mb-1 text-xs font-semibold text-emerald-300">
+                          Solution
+                        </div>
+                        <div className="text-sm text-slate-200">
+                          {err.solutionHint}
+                        </div>
                       </div>
-                      <div className="text-sm text-slate-200">
-                        {err.solutionHint}
-                      </div>
-                    </div>
+                    )
                   )}
                 </article>
               ))}

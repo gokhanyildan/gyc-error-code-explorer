@@ -1,144 +1,161 @@
 import requests
 import re
 import os
+import json
 
-# Source: Windows SDK Header Mirror
+# --- CONFIGURATION ---
 URL = "https://raw.githubusercontent.com/tpn/winsdk-10/master/Include/10.0.10240.0/shared/winerror.h"
-OUTPUT_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'error-db.ts')
+BASE_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+OUTPUT_FILE = os.path.join(BASE_DIR, 'error-db.ts')
+CUSTOM_FILE = os.path.join(BASE_DIR, 'custom-knowledge.json')
 
-# --- CUSTOM SCCM & SPECIAL CODES (Manual Injection) ---
-CUSTOM_ERRORS = [
-    {
-        "code": "0x87D00669",
-        "codeInt": -2016410007,
-        "name": "CCM_E_APPC_CONTENT_NOT_FOUND",
-        "description": "Content cannot be found.",
-        "platform": "windows",
-        "source": "SCCM",
-        "solutionHint": "SCCM Classic: The client cannot find the content on a Distribution Point. Check Boundary Groups."
-    },
-    {
-        "code": "0x87D00607",
-        "codeInt": -2016410105,
-        "name": "CCM_E_PROGRESS_TIMEOUT",
-        "description": "Content download timeout.",
-        "platform": "windows",
-        "source": "SCCM",
-        "solutionHint": "Maintenance window might be too short or content is too large."
-    },
-    {
-        "code": "0x80070005", # Manually ensuring this exists as a fallback if regex misses specific mapping
-        "codeInt": -2147024891,
-        "name": "E_ACCESSDENIED",
-        "description": "General access denied error.",
-        "platform": "windows",
-        "source": "HRESULT",
-        "solutionHint": "Check NTFS permissions, Run as Administrator, or DCOM settings."
-    }
-]
+def load_custom_data():
+    """Loads the manual overrides from JSON."""
+    if not os.path.exists(CUSTOM_FILE):
+        print("[!] Warning: custom-knowledge.json not found. Creating empty one.")
+        with open(CUSTOM_FILE, 'w') as f: json.dump({}, f)
+        return {}
+    
+    with open(CUSTOM_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 def fetch_and_parse():
+    print(f"[*] Loading Custom Knowledge from: {CUSTOM_FILE}...")
+    custom_data = load_custom_data()
+    
     print(f"[*] Fetching raw header from: {URL}...")
     try:
         response = requests.get(URL)
         content = response.text
     except Exception as e:
-        print(f"[!] Error: {e}")
+        print(f"[!] Error downloading header: {e}")
         return
 
-    print("[*] Parsing content with Advanced Regex...")
+    print("[*] Parsing and Merging Data...")
     
-    errors = []
-    seen_keys = set() # To prevent duplicates (Code + Name)
+    errors = {} # Use dict for deduplication (Key: HexCode)
 
-    # 1. Add Custom/SCCM Errors first (High Priority)
-    for err in CUSTOM_ERRORS:
-        key = f"{err['code']}-{err['name']}"
-        seen_keys.add(key)
-        errors.append(format_ts_object(err))
-
-    # 2. Parse Standard Defines: #define NAME 0x123
+    # 1. Parsing Regex Pattern
+    # Matches: #define NAME  0x123 or 123
     regex_std = r"^\s*#define\s+([A-Z0-9_]+)\s+((?:0x[0-9A-Fa-f]+|\d+)L?)"
-    
-    # 3. Parse HRESULT Macros: #define NAME _HRESULT_TYPEDEF_(0x123)
     regex_macro = r"^\s*#define\s+([A-Z0-9_]+)\s+_HRESULT_TYPEDEF_\((0x[0-9A-Fa-f]+)L?\)"
 
     lines = content.splitlines()
-    
     for line in lines:
         name = None
         raw_code = None
 
-        # Try Match Standard
-        match_std = re.search(regex_std, line)
-        if match_std:
-            name = match_std.group(1)
-            raw_code = match_std.group(2).replace('L', '')
+        # Attempt Match
+        match = re.search(regex_std, line) or re.search(regex_macro, line)
+        if match:
+            name = match.group(1)
+            raw_code = match.group(2).replace('L', '')
 
-        # Try Match Macro (If std failed)
-        if not name:
-            match_macro = re.search(regex_macro, line)
-            if match_macro:
-                name = match_macro.group(1)
-                raw_code = match_macro.group(2).replace('L', '')
-
-        # Process if found
         if name and raw_code:
-            # Skip if code is not numeric/hex (e.g. other macros)
+            # Clean Code
             if not (raw_code.startswith('0x') or raw_code.isdigit()): continue
-
+            
             try:
-                # Normalization
+                # Normalize Hex/Int
                 if raw_code.startswith('0x'):
                     int_val = int(raw_code, 16)
-                    # Signed 32-bit correction
                     if int_val > 0x7FFFFFFF: int_val -= 0x100000000
+                    hex_code = raw_code.lower()
                 else:
                     int_val = int(raw_code)
-                    raw_code = hex(int_val)
+                    hex_code = hex(int_val).lower()
 
-                # Skip duplicates (Prioritize Custom Errors we added first)
-                key = f"{raw_code}-{name}"
-                if key in seen_keys: continue
-                seen_keys.add(key)
-
-                # Heuristic Source Categorization
+                # Basic Source Logic
                 source = "Win32"
                 if name.startswith("RPC_"): source = "RPC"
                 elif name.startswith("WSA"): source = "Winsock"
                 elif name.startswith("E_") or name.startswith("CO_E_"): source = "HRESULT"
-                elif name.startswith("ERROR_"): source = "Win32"
 
                 desc = name.replace('ERROR_', '').replace('E_', '').replace('_', ' ').title()
 
-                error_obj = {
-                    "code": raw_code,
+                # Create Base Object
+                errors[hex_code] = {
+                    "code": hex_code,
                     "codeInt": int_val,
                     "name": name,
                     "description": desc,
                     "platform": "windows",
                     "source": source,
-                    "solutionHint": None
+                    "solutionHint": None,
+                    "likelySeenIn": []
                 }
-                
-                errors.append(format_ts_object(error_obj))
-
             except ValueError: continue
 
-    print(f"[*] Total unique codes: {len(errors)}. Writing to file...")
+    # 2. APPLY CUSTOM OVERRIDES (The Merge)
+    # This overwrites or adds new entries from JSON
+    print(f"[*] Applying {len(custom_data)} custom overrides...")
+    
+    for code, data in custom_data.items():
+        clean_code = code.lower()
+        
+        # If code exists in SDK, update it. If not (like SCCM), create it.
+        if clean_code not in errors:
+            # New entry (e.g., SCCM)
+            errors[clean_code] = {
+                "code": clean_code,
+                "codeInt": int(clean_code, 16) if clean_code.startswith('0x') else 0,
+                "name": data.get("name", "UNKNOWN_ERROR"),
+                "description": data.get("description", "Custom Error"),
+                "platform": "windows",
+                "source": data.get("source", "Custom"),
+                "solutionHint": data.get("solutionHint"),
+                "likelySeenIn": data.get("likelySeenIn", [])
+            }
+        else:
+            # Existing entry - Enrich it!
+            if "solutionHint" in data:
+                errors[clean_code]["solutionHint"] = data["solutionHint"]
+            if "likelySeenIn" in data:
+                errors[clean_code]["likelySeenIn"] = data["likelySeenIn"]
+            if "overrideName" in data:
+                errors[clean_code]["name"] = data["overrideName"]
+            if "description" in data:
+                errors[clean_code]["description"] = data["description"]
+
+    # 3. Generate TypeScript
+    print(f"[*] Total Unique Codes: {len(errors)}. Writing to file...")
+    
+    # Convert dict to list
+    final_list = list(errors.values())
     
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        f.write("import { ErrorCode } from '../types';\n\n")
-        f.write("// AUTO-GENERATED + CUSTOM INJECTED\n")
+        f.write("import { ErrorCode } from '../src/types';\n\n")
+        f.write("// AUTO-GENERATED + CUSTOM JSON OVERLAYS\n")
         f.write("export const errorDatabase: ErrorCode[] = [\n")
-        f.write(",\n".join(errors))
-        f.write("\n];\n")
+        
+        for obj in final_list:
+            f.write(format_ts_object(obj) + ",\n")
+            
+        f.write("];\n")
     
     print("[+] Database updated successfully.")
 
 def format_ts_object(obj):
-    # Helper to format Python dict to TS string
-    hint_str = f'"{obj["solutionHint"]}"' if obj.get("solutionHint") else "undefined"
+    # Helper to clean strings for TS
+    def clean_str(s): return str(s).replace('"', '\\"').replace('\n', '\\n') if s else "undefined"
+    
+    hint = f'"{clean_str(obj.get("solutionHint"))}"' if obj.get("solutionHint") else "undefined"
+    seen = str(obj.get("likelySeenIn", [])).replace("'", '"')
+
+    # RUNBOOK PARSING (NEW)
+    runbook_str = "undefined"
+    if "runbook" in obj:
+        rb = obj["runbook"]
+        causes = str(rb.get("causes", [])).replace("'", '"')
+        cmd = f'"{clean_str(rb.get("fixCommand"))}"' if rb.get("fixCommand") else "undefined"
+        deep = f'"{clean_str(rb.get("deepDive"))}"' if rb.get("deepDive") else "undefined"
+        
+        runbook_str = f"""{{
+        causes: {causes},
+        fixCommand: {cmd},
+        deepDive: {deep}
+    }}"""
+
     return f"""  {{
     code: "{obj['code']}",
     codeInt: {obj['codeInt']},
@@ -146,7 +163,9 @@ def format_ts_object(obj):
     description: "{obj['description']}",
     platform: "{obj['platform']}",
     source: "{obj['source']}",
-    solutionHint: {hint_str}
+    solutionHint: {hint},
+    runbook: {runbook_str},
+    likelySeenIn: {seen}
   }}"""
 
 if __name__ == "__main__":

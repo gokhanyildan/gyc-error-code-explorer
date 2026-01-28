@@ -8,4 +8,10 @@ export interface ErrorCode {
   platform: PlatformType;
   source: string;
   solutionHint?: string;
+  likelySeenIn?: string[];
+  runbook?: {
+    causes?: string[];
+    fixCommand?: string;
+    deepDive?: string;
+  };
 }

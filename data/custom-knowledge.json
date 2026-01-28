@@ -1,0 +1,173 @@
+{
+  "0x80070005": {
+    "overrideName": "E_ACCESSDENIED",
+    "solutionHint": "Classic permission issue. 1) Run as Administrator. 2) Check NTFS permissions. 3) Check DCOM security settings (dcomcnfg). 4) In SCCM, ensure the 'Network Access Account' is not locked out.",
+    "likelySeenIn": ["File System", "DCOM", "SCCM"]
+  },
+  "0x80004005": {
+    "overrideName": "E_FAIL (Unspecified Failure)",
+    "solutionHint": "The generic 'Check Engine' light. In Task Sequences, check SMSTS.log for the line *immediately preceding* this error. In Windows Update, usually means corrupted SoftwareDistribution folder.",
+    "likelySeenIn": ["Task Sequence", "Windows Update", "General"]
+  },
+  "0x80070002": {
+    "overrideName": "ERROR_FILE_NOT_FOUND",
+    "solutionHint": "System cannot find the file. Scripts fail because mapped drives (Z:) do not exist in System Context. Use UNC paths (\\\\server\\share) or %~dp0 variables.",
+    "likelySeenIn": ["Scripting", "SCCM App Deployment"]
+  },
+  "0x80070003": {
+    "overrideName": "ERROR_PATH_NOT_FOUND",
+    "solutionHint": "Directory missing. Often happens in Task Sequences when a package fails to download, or the 'Start In' directory is invalid.",
+    "likelySeenIn": ["Task Sequence", "Filesystem"]
+  },
+  "0x87d00669": {
+    "name": "CCM_E_APPC_CONTENT_NOT_FOUND",
+    "source": "SCCM",
+    "description": "Content cannot be found on Distribution Point.",
+    "solutionHint": "1) Check Boundary Groups (References). 2) Redistribute content. 3) Check CAS.log and LocationServices.log on client.",
+    "likelySeenIn": ["SCCM Client", "Content Transfer"]
+  },
+  "0x87d00607": {
+    "name": "CCM_E_PROGRESS_TIMEOUT",
+    "source": "SCCM",
+    "description": "Content download timeout.",
+    "solutionHint": "Download took too long. 1) Maintenance window is too short. 2) Network is slow. 3) BITS job is stuck (Reset BITS).",
+    "likelySeenIn": ["SCCM Client", "Maintenance Windows"]
+  },
+  "0x87d00324": {
+    "name": "CCM_E_INSTALL_TXT_MISMATCH",
+    "source": "SCCM",
+    "description": "Application detection method failed.",
+    "solutionHint": "The installer finished with Exit Code 0, but SCCM's 'Detection Method' (File/Reg/MSI) could not find the app. Your detection logic is wrong.",
+    "likelySeenIn": ["SCCM App Deployment"]
+  },
+  "0x87d00215": {
+    "name": "CCM_E_ITEM_NOT_FOUND",
+    "source": "SCCM",
+    "description": "Item not found in WMI.",
+    "solutionHint": "Client cache might be corrupt or the policy is missing. Trigger 'Machine Policy Retrieval' and check PolicyAgent.log.",
+    "likelySeenIn": ["SCCM Client", "WMI"]
+  },
+  "0x87d01106": {
+    "name": "CCM_E_BAD_Digest",
+    "source": "SCCM",
+    "description": "Failed to verify executable/content hash.",
+    "solutionHint": "The downloaded file does not match the hash in the console. 1) Update Content on DP. 2) Clear Client Cache (ccmcache). 3) Anti-virus might be modifying the file.",
+    "likelySeenIn": ["SCCM Content", "Anti-Virus"]
+  },
+  "0x800706ba": {
+    "overrideName": "RPC_S_SERVER_UNAVAILABLE",
+    "solutionHint": "Firewall blocking Port 135/RPC. 1) Check Windows Firewall. 2) Ensure 'RPC Server' service is running. 3) DNS issues resolving the hostname.",
+    "likelySeenIn": ["WMI", "Remote Management", "Active Directory"]
+  },
+  "0x80070643": {
+    "overrideName": "ERROR_INSTALL_FAILURE",
+    "solutionHint": "Fatal MSI error. This is a wrapper code. You MUST look at the MSI log (usually %temp%\\MSI*.log) to find the real error (often 1603).",
+    "likelySeenIn": ["Windows Update", "MSI Installation"]
+  },
+  "0x80070652": {
+    "overrideName": "ERROR_INSTALL_ALREADY_RUNNING",
+    "solutionHint": "Another installation is in progress (Mutex locked). Wait for it to finish or kill 'msiexec.exe'. Common during OSD/Autopilot.",
+    "likelySeenIn": ["Windows Installer", "Autopilot"]
+  },
+  "0x80244017": {
+    "overrideName": "WU_E_PT_HTTP_STATUS_DENIED",
+    "solutionHint": "WSUS/Proxy 401/403 Error. Client cannot authenticate to WSUS. Check IIS settings on WSUS or Proxy authentication.",
+    "likelySeenIn": ["Windows Update", "WSUS"]
+  },
+  "0x8024001e": {
+    "overrideName": "WU_E_SERVICE_STOPPED",
+    "solutionHint": "Windows Update Service is stopping or stopped. Often happens during a reboot cycle or if the service crashes.",
+    "likelySeenIn": ["Windows Update"]
+  },
+  "0x80244010": {
+    "overrideName": "WU_E_PT_EXCEEDED_MAX_SERVER_TRIPS",
+    "solutionHint": "Too many round trips to WSUS. This is actually NOT an error; it means 'I have so many updates, I need to talk to the server again'. Just run scan again.",
+    "likelySeenIn": ["Windows Update", "WSUS"]
+  },
+  "0x80072ee2": {
+    "overrideName": "ERROR_INTERNET_TIMEOUT",
+    "solutionHint": "Network Timeout. WSUS/Internet is unreachable. Check Proxy, Firewall, or if the WSUS Application Pool is down.",
+    "likelySeenIn": ["Windows Update", "Network"]
+  },
+  "0x80180014": {
+    "name": "MENROLL_E_DEVICE_NOT_SUPPORTED",
+    "source": "Intune",
+    "solutionHint": "Enrollment Restriction block. The user is trying to enroll a Personal device but your Intune 'Device Type Restrictions' block 'Personal' platform.",
+    "likelySeenIn": ["Intune Enrollment", "Autopilot"]
+  },
+  "0x8018000a": {
+    "name": "MENROLL_E_DEVICE_ALREADY_ENROLLED",
+    "source": "Intune",
+    "solutionHint": "Device is already enrolled. Delete the old record from Intune/Azure AD or try `dsregcmd /leave`.",
+    "likelySeenIn": ["Intune Enrollment"]
+  },
+  "0x8007052e": {
+    "overrideName": "ERROR_LOGON_FAILURE",
+    "solutionHint": "Bad Username or Password. In SCCM, this often means the 'Network Access Account' or 'Domain Join Account' password has expired.",
+    "likelySeenIn": ["Active Directory", "SCCM OSD"]
+  },
+  "0x80090302": {
+    "overrideName": "SEC_E_UNTRUSTED_ROOT",
+    "solutionHint": "SSL Certificate Error. The client does not trust the Root CA that issued the server's certificate. Deploy the Root CA via GPO.",
+    "likelySeenIn": ["HTTPS", "PKI", "IIS"]
+  },
+  "0x0000007b": {
+    "name": "INACCESSIBLE_BOOT_DEVICE",
+    "source": "BugCheck",
+    "description": "Blue Screen (BSOD) - 0x7B",
+    "solutionHint": "Storage Driver Issue. 1) Missing Mass Storage Driver in SCCM Boot Image. 2) Bios set to RAID instead of AHCI (or vice versa).",
+    "likelySeenIn": ["OSD", "BSOD"]
+  },
+  "0x80070070": {
+    "overrideName": "ERROR_DISK_FULL",
+    "solutionHint": "There is not enough space on the disk. During OSD, ensure the partition size is adequate. Clear ccmcache.",
+    "likelySeenIn": ["Disk", "SCCM"]
+  },
+  "0x8007000d": {
+    "overrideName": "ERROR_INVALID_DATA",
+    "solutionHint": "Data is invalid. Very common in Task Sequences when a Driver Package is corrupt or the BCD (Boot Configuration Data) is messed up.",
+    "likelySeenIn": ["Task Sequence", "Drivers"]
+  },
+  "0xc0000005": {
+    "overrideName": "STATUS_ACCESS_VIOLATION",
+    "solutionHint": "Memory Access Violation. Application crashed trying to read protected memory. Often caused by bad RAM, buggy drivers, or buffer overflows.",
+    "likelySeenIn": ["Application Crash", "Kernel"]
+  },
+  "0x80070422": {
+    "overrideName": "ERROR_SERVICE_DISABLED",
+    "solutionHint": "The service cannot be started because it is disabled. Check services.msc (e.g., Windows Update service).",
+    "likelySeenIn": ["Services", "Windows Update"]
+  },
+  "0x000006be": {
+    "overrideName": "RPC_S_CALL_FAILED",
+    "solutionHint": "Remote Procedure Call failed. The remote service crashed or network connection dropped mid-stream.",
+    "likelySeenIn": ["Printing", "Remote Management"]
+  },
+  "0x80070035": {
+    "overrideName": "ERROR_BAD_NETPATH",
+    "solutionHint": "The network path was not found. 1) DNS resolution failure. 2) SMB blocked by firewall. 3) Target machine is offline.",
+    "likelySeenIn": ["Network Shares", "GPO"]
+  },
+  "0x80072f8f": {
+    "overrideName": "ERROR_SECURITY_SSL_DAYS",
+    "solutionHint": "Security/Clock Error. The system clock is significantly different from the server/SSL certificate timestamps. Fix the time/date.",
+    "likelySeenIn": ["Windows Update", "Activation", "HTTPS"]
+  },
+  "0xC004F074": {
+    "name": "KMS_UNAVAILABLE",
+    "source": "Activation",
+    "description": "Key Management Service (KMS) is unavailable.",
+    "solutionHint": "DNS cannot find the KMS SRV record (_vlmcs._tcp). Or firewall blocking port 1688.",
+    "likelySeenIn": ["Windows Activation", "KMS"]
+  },
+   "0x80070109": {
+    "overrideName": "ERROR_BROKEN_PIPE",
+    "solutionHint": "The pipe has been ended. Often seen in OSD when the network connection to the Distribution Point is interrupted.",
+    "likelySeenIn": ["OSD", "Network"]
+  },
+  "0x8000ffff": {
+    "overrideName": "E_UNEXPECTED",
+    "solutionHint": "Catastrophic failure. Often seen in Store Apps or when Windows component store is heavily corrupted (Run DISM /RestoreHealth).",
+    "likelySeenIn": ["Windows Store", "General"]
+  }
+}
