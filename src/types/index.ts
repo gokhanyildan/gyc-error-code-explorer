@@ -1,5 +1,12 @@
-export type PlatformType = 'windows' | 'linux' | 'mac';
-
+export type PlatformType =
+  | 'windows'
+  | 'linux'
+  | 'web'
+  | 'network'
+  | 'database'
+  | 'container'
+  | 'smtp';
+  
 export interface ErrorCode {
   code: string;
   codeInt: number;
@@ -10,8 +17,9 @@ export interface ErrorCode {
   solutionHint?: string;
   likelySeenIn?: string[];
   runbook?: {
-    causes?: string[];
+    causes: string[];
     fixCommand?: string;
     deepDive?: string;
   };
+  products?: string[];
 }

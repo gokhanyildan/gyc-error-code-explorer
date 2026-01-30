@@ -4,8 +4,27 @@ import { useMemo, useState } from "react";
 import { ErrorCode } from "@/src/types";
 import { errorDatabase } from "@/data/error-db";
 import type { ReactNode } from "react";
+import {
+  LayoutGrid,
+  Monitor,
+  Terminal,
+  Globe,
+  Network as NetworkIcon,
+  Database as DatabaseIcon,
+  Boxes,
+  Mail,
+  Search as SearchIcon,
+} from "lucide-react";
 
-type SelectedPlatform = "all" | "windows" | "linux";
+type SelectedPlatform =
+  | "all"
+  | "windows"
+  | "linux"
+  | "web"
+  | "network"
+  | "database"
+  | "container"
+  | "smtp";
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -13,6 +32,28 @@ export default function Home() {
     useState<SelectedPlatform>("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedFixFor, setCopiedFixFor] = useState<string | null>(null);
+  const PLATFORMS: Array<{
+    id: SelectedPlatform;
+    label: string;
+    Icon:
+      | typeof LayoutGrid
+      | typeof Monitor
+      | typeof Terminal
+      | typeof Globe
+      | typeof NetworkIcon
+      | typeof DatabaseIcon
+      | typeof Boxes
+      | typeof Mail;
+  }> = [
+    { id: "all", label: "All", Icon: LayoutGrid },
+    { id: "windows", label: "Windows", Icon: Monitor },
+    { id: "linux", label: "Linux", Icon: Terminal },
+    { id: "web", label: "Web / HTTP", Icon: Globe },
+    { id: "network", label: "Network / DNS", Icon: NetworkIcon },
+    { id: "database", label: "Database", Icon: DatabaseIcon },
+    { id: "container", label: "Docker / K8s", Icon: Boxes },
+    { id: "smtp", label: "Mail / SMTP", Icon: Mail },
+  ];
 
   const escapeRegExp = (s: string) =>
     s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -33,9 +74,10 @@ export default function Home() {
   };
 
   const matched: ErrorCode[] = useMemo(() => {
+    const list = errorDatabase as unknown as ErrorCode[];
     const term = searchTerm.trim().toLowerCase();
     if (!term) return [];
-    return errorDatabase.filter((e) => {
+    return list.filter((e) => {
       if (selectedPlatform !== "all" && e.platform !== selectedPlatform) {
         return false;
       }
@@ -50,6 +92,26 @@ export default function Home() {
 
   const limited: ErrorCode[] = useMemo(() => matched.slice(0, 50), [matched]);
   const isLimited = matched.length > 50;
+  const platformAccent = (p: SelectedPlatform) => {
+    switch (p) {
+      case "windows":
+        return "border-l-blue-600";
+      case "linux":
+        return "border-l-orange-500";
+      case "web":
+        return "border-l-emerald-500";
+      case "network":
+        return "border-l-teal-500";
+      case "database":
+        return "border-l-purple-500";
+      case "container":
+        return "border-l-cyan-500";
+      case "smtp":
+        return "border-l-pink-500";
+      default:
+        return "border-l-slate-700";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -64,32 +126,38 @@ export default function Home() {
         </header>
 
         <section className="mb-8 flex flex-col items-center gap-4">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search code, integer, name, or description…"
-            className="w-full max-w-2xl rounded-xl bg-slate-900/50 border border-slate-800 px-5 py-4 shadow-lg backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-          />
+          <div className="relative w-full max-w-2xl">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search code, integer, name, or description…"
+              className="w-full rounded-xl bg-slate-900/50 border border-slate-800 pl-12 pr-5 py-4 shadow-lg backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
 
-          <div className="flex items-center gap-2">
-            {(["all", "windows", "linux"] as SelectedPlatform[]).map((p) => {
-              const active = selectedPlatform === p;
-              return (
-                <button
-                  key={p}
-                  onClick={() => setSelectedPlatform(p)}
-                  className={[
-                    "rounded-lg px-4 py-2 text-sm font-medium transition",
-                    active
-                      ? "bg-slate-800 text-white ring-1 ring-slate-700"
-                      : "bg-slate-900/50 text-slate-300 border border-slate-800 hover:bg-slate-800",
-                  ].join(" ")}
-                >
-                  {p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              );
-            })}
+          <div className="w-full">
+            <div className="flex overflow-x-auto no-scrollbar gap-3 py-4">
+              {PLATFORMS.map(({ id, label, Icon }) => {
+                const active = selectedPlatform === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setSelectedPlatform(id)}
+                    className={[
+                      "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 border",
+                      active
+                        ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        : "bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200",
+                    ].join(" ")}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {searchTerm.trim() && (
@@ -116,7 +184,11 @@ export default function Home() {
               {limited.map((err) => (
                 <article
                   key={`${err.platform}-${err.code}-${err.name}`}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm"
+                  className={[
+                    "rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm",
+                    "border-l-2",
+                    platformAccent(err.platform as SelectedPlatform),
+                  ].join(" ")}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -207,10 +279,10 @@ export default function Home() {
                             <div className="text-xs font-bold uppercase text-slate-500">
                               Possible Causes
                             </div>
-                            <ul className="list-disc pl-5 mt-2 text-sm text-slate-300">
-                              {err.runbook.causes.map((c, i) => (
-                                <li key={i}>{c}</li>
-                              ))}
+                                        <ul className="list-disc pl-5 mt-2 text-sm text-slate-300">
+                                          {err.runbook.causes.map((c, i) => (
+                                            <li key={i} className="break-words">{c}</li>
+                                          ))}
                             </ul>
                           </div>
                         )}
@@ -249,13 +321,13 @@ export default function Home() {
                               </svg>
                             )}
                           </button>
-                          <pre className="bg-black/50 p-3 rounded font-mono text-sm text-green-400 whitespace-pre-wrap">
+                                      <pre className="bg-black/50 p-3 rounded font-mono text-sm text-green-400 whitespace-pre-wrap overflow-x-auto max-w-full">
                             {err.runbook.fixCommand}
                           </pre>
                         </div>
                       )}
                       {err.runbook.deepDive && (
-                        <div className="mt-3 text-xs text-slate-400">
+                                    <div className="mt-3 text-xs text-slate-400 break-words">
                           {err.runbook.deepDive}
                         </div>
                       )}
