@@ -5,7 +5,8 @@ export type PlatformType =
   | 'network'
   | 'database'
   | 'container'
-  | 'smtp';
+  | 'smtp'
+  | 'bsod';
 
 export interface ErrorCode {
   code: string;

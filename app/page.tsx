@@ -15,6 +15,7 @@ import {
   Mail,
   Search as SearchIcon,
   Skull,
+  Github,
 } from "lucide-react";
 
 type SelectedPlatform =
@@ -80,17 +81,19 @@ export default function Home() {
   const matched: ErrorCode[] = useMemo(() => {
     const list = errorDatabase as unknown as ErrorCode[];
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return [];
     return list.filter((e) => {
       if (selectedPlatform !== "all" && e.platform !== selectedPlatform) {
         return false;
       }
-      return (
-        e.code.toLowerCase().includes(term) ||
-        String(e.codeInt).toLowerCase().includes(term) ||
-        e.name.toLowerCase().includes(term) ||
-        e.description.toLowerCase().includes(term)
-      );
+      if (term) {
+        return (
+          e.code.toLowerCase().includes(term) ||
+          String(e.codeInt).toLowerCase().includes(term) ||
+          e.name.toLowerCase().includes(term) ||
+          e.description.toLowerCase().includes(term)
+        );
+      }
+      return true;
     });
   }, [searchTerm, selectedPlatform]);
 
@@ -120,9 +123,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200">
-      <main className="mx-auto max-w-7xl px-6 py-12">
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col">
+      <main className="mx-auto max-w-7xl px-6 py-12 flex-1">
         <header className="mb-10 text-center">
+          <a
+            href="https://gokhanyildan.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center mb-3 rounded-full px-3 py-1 text-xs font-medium bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/15 transition"
+          >
+            Architected by Gökhan Yıldan
+          </a>
           <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-400 to-purple-400">
             Error Code Explorer
           </h1>
@@ -167,36 +178,24 @@ export default function Home() {
             </div>
           </div>
 
-          {searchTerm.trim() && (
-            <div className="text-xs text-slate-500">
-              {isLimited
-                ? `Showing top 50 matches • ${matched.length} total`
-                : `${matched.length} result${matched.length === 1 ? "" : "s"}`}
-            </div>
-          )}
+          <div className="text-xs text-slate-500">
+            {isLimited
+              ? `Showing top 50 matches • ${matched.length} total`
+              : `${matched.length} result${matched.length === 1 ? "" : "s"}`}
+          </div>
         </section>
 
-        {!searchTerm.trim() ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="text-center">
-              <div className="mb-4 text-5xl">🔎</div>
-              <div className="text-lg text-slate-300">
-                Enter a code to start exploring...
-              </div>
-            </div>
-          </div>
-        ) : (
-          <section>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {limited.map((err) => (
-                <article
-                  key={`${err.platform}-${err.code}-${err.name}`}
-                  className={[
-                    "rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm",
-                    "border-l-2",
-                    platformAccent(err.platform as SelectedPlatform),
-                  ].join(" ")}
-                >
+        <section>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {limited.map((err) => (
+              <article
+                key={`${err.platform}-${err.code}-${err.name}`}
+                className={[
+                  "rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm",
+                  "border-l-2",
+                  platformAccent(err.platform as SelectedPlatform),
+                ].join(" ")}
+              >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-2xl bg-slate-800 rounded-md px-2 py-1 text-slate-100">
@@ -351,12 +350,55 @@ export default function Home() {
                       </div>
                     )
                   )}
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+              </article>
+            ))}
+          </div>
+        </section>
       </main>
+      <footer className="mt-auto border-t border-slate-800 bg-slate-950">
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          <div className="flex items-center justify-between gap-6 flex-wrap">
+            <div className="text-slate-500 text-sm">
+              © 2026 Gökhan Yıldan. All systems operational.
+            </div>
+            <nav className="flex items-center gap-6 text-sm">
+              <a
+                href="https://gokhanyildan.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-white transition"
+              >
+                Blog
+              </a>
+              <a
+                href="https://gokhanyildan.com#tools"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-white transition"
+              >
+                Tools
+              </a>
+              <a
+                href="https://gokhanyildan.com#about"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-white transition"
+              >
+                About
+              </a>
+            </nav>
+            <a
+              href="https://github.com/gokhanyildan/gyc-error-code-explorer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-slate-500 hover:text-white transition"
+            >
+              <Github className="w-4 h-4" />
+              <span className="text-sm">GitHub</span>
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
