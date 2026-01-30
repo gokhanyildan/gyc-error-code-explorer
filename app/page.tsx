@@ -14,11 +14,13 @@ import {
   Boxes,
   Mail,
   Search as SearchIcon,
+  Skull,
 } from "lucide-react";
 
 type SelectedPlatform =
   | "all"
   | "windows"
+  | "bsod"
   | "linux"
   | "web"
   | "network"
@@ -38,6 +40,7 @@ export default function Home() {
     Icon:
       | typeof LayoutGrid
       | typeof Monitor
+      | typeof Skull
       | typeof Terminal
       | typeof Globe
       | typeof NetworkIcon
@@ -47,6 +50,7 @@ export default function Home() {
   }> = [
     { id: "all", label: "All", Icon: LayoutGrid },
     { id: "windows", label: "Windows", Icon: Monitor },
+    { id: "bsod", label: "BSOD / Crash", Icon: Skull },
     { id: "linux", label: "Linux", Icon: Terminal },
     { id: "web", label: "Web / HTTP", Icon: Globe },
     { id: "network", label: "Network / DNS", Icon: NetworkIcon },
@@ -96,6 +100,8 @@ export default function Home() {
     switch (p) {
       case "windows":
         return "border-l-blue-600";
+      case "bsod":
+        return "border-l-red-600";
       case "linux":
         return "border-l-orange-500";
       case "web":
@@ -126,37 +132,38 @@ export default function Home() {
         </header>
 
         <section className="mb-8 flex flex-col items-center gap-4">
-          <div className="relative w-full max-w-2xl">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search code, integer, name, or description…"
-              className="w-full rounded-xl bg-slate-900/50 border border-slate-800 pl-12 pr-5 py-4 shadow-lg backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
-          </div>
-
-          <div className="w-full">
-            <div className="flex overflow-x-auto no-scrollbar gap-3 py-4">
-              {PLATFORMS.map(({ id, label, Icon }) => {
-                const active = selectedPlatform === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setSelectedPlatform(id)}
-                    className={[
-                      "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 border",
-                      active
-                        ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-                        : "bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200",
-                    ].join(" ")}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{label}</span>
-                  </button>
-                );
-              })}
+          <div className="max-w-3xl mx-auto w-full px-4">
+            <div className="relative w-full">
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search code, integer, name, or description…"
+                className="h-14 w-full rounded-xl shadow-lg border border-slate-700/50 bg-slate-900/50 pl-12 pr-5 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
+            <div className="w-full">
+              <div className="flex flex-wrap justify-center gap-3 py-4">
+                {PLATFORMS.map(({ id, label, Icon }) => {
+                  const active = selectedPlatform === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setSelectedPlatform(id)}
+                      className={[
+                        "flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all duration-200 border",
+                        active
+                          ? "bg-blue-600/10 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                          : "bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200",
+                      ].join(" ")}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
