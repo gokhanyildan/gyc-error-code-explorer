@@ -6,7 +6,7 @@ export type PlatformType =
   | 'database'
   | 'container'
   | 'smtp';
-  
+
 export interface ErrorCode {
   code: string;
   codeInt: number;
@@ -21,5 +21,5 @@ export interface ErrorCode {
     fixCommand?: string;
     deepDive?: string;
   };
-  products?: string[];
+  products?: string[]; // <-- Build hatasını çözen kritik alan
 }
