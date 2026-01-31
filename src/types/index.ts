@@ -16,6 +16,7 @@ export interface ErrorCode {
   platform: PlatformType;
   source: string;
   solutionHint?: string;
+  isCommon?: boolean;
   likelySeenIn?: string[];
   runbook?: {
     causes: string[];

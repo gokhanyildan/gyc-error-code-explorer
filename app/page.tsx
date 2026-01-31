@@ -16,12 +16,14 @@ import {
   Search as SearchIcon,
   Skull,
   Github,
+  Server,
 } from "lucide-react";
 
 type SelectedPlatform =
   | "all"
   | "windows"
   | "bsod"
+  | "sccm"
   | "linux"
   | "web"
   | "network"
@@ -42,6 +44,7 @@ export default function Home() {
       | typeof LayoutGrid
       | typeof Monitor
       | typeof Skull
+      | typeof Server
       | typeof Terminal
       | typeof Globe
       | typeof NetworkIcon
@@ -52,8 +55,9 @@ export default function Home() {
     { id: "all", label: "All", Icon: LayoutGrid },
     { id: "windows", label: "Windows", Icon: Monitor },
     { id: "bsod", label: "BSOD / Crash", Icon: Skull },
-    { id: "linux", label: "Linux", Icon: Terminal },
-    { id: "web", label: "Web / HTTP", Icon: Globe },
+    { id: "sccm", label: "SCCM / MECM", Icon: Server },
+    { id: "linux", label: "Linux / POSIX", Icon: Terminal },
+    { id: "web", label: "Web / API", Icon: Globe },
     { id: "network", label: "Network / DNS", Icon: NetworkIcon },
     { id: "database", label: "Database", Icon: DatabaseIcon },
     { id: "container", label: "Docker / K8s", Icon: Boxes },
@@ -81,22 +85,46 @@ export default function Home() {
   const matched: ErrorCode[] = useMemo(() => {
     const list = errorDatabase as unknown as ErrorCode[];
     const term = searchTerm.trim().toLowerCase();
-    return list.filter((e) => {
-      if (selectedPlatform !== "all" && e.platform !== selectedPlatform) {
-        return false;
-      }
-      if (term) {
-        return (
-          e.code.toLowerCase().includes(term) ||
-          String(e.codeInt).toLowerCase().includes(term) ||
-          e.name.toLowerCase().includes(term) ||
-          e.description.toLowerCase().includes(term)
-        );
-      }
-      return true;
-    });
+    return list
+      .filter((e) => {
+        if (selectedPlatform !== "all") {
+          if (selectedPlatform === "sccm") {
+            const code = (e.code || "").toLowerCase();
+            const src = (e.source || "").toLowerCase();
+            const prods = Array.isArray(e.products) ? e.products : [];
+            const isSccmish =
+              e.platform === "sccm" ||
+              src === "sccm" ||
+              prods.includes("Windows Update") ||
+              prods.includes("DISM/CBS") ||
+              code.startsWith("0x800f") ||
+              code.startsWith("0x8024");
+            if (!isSccmish) return false;
+          } else {
+            if (e.platform !== selectedPlatform) return false;
+          }
+        }
+        if (term) {
+          return (
+            e.code.toLowerCase().includes(term) ||
+            String(e.codeInt).toLowerCase().includes(term) ||
+            e.name.toLowerCase().includes(term) ||
+            e.description.toLowerCase().includes(term)
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.isCommon && !b.isCommon) return -1;
+        if (!a.isCommon && b.isCommon) return 1;
+        const byName = a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+        if (byName !== 0) return byName;
+        return a.code.localeCompare(b.code, undefined, { numeric: true });
+      });
   }, [searchTerm, selectedPlatform]);
-
   const limited: ErrorCode[] = useMemo(() => matched.slice(0, 50), [matched]);
   const isLimited = matched.length > 50;
   const platformAccent = (p: SelectedPlatform) => {
@@ -155,7 +183,7 @@ export default function Home() {
               />
             </div>
             <div className="w-full">
-              <div className="flex flex-wrap justify-center gap-3 py-4">
+              <div className="flex w-full flex-wrap justify-start gap-2 py-4">
                 {PLATFORMS.map(({ id, label, Icon }) => {
                   const active = selectedPlatform === id;
                   return (
